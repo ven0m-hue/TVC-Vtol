@@ -44,8 +44,9 @@ def quat2euler(q):
 def measure_acc_mag(accel_data, mag_data):
     
     ax, ay, az = accel_data/np.linalg.norm(accel_data)
-    mx, my, mz = mag_data/np.linalg.norm(mag_data)
-    
+    mx, my, mz = mag_data/np.linalg.norm(mag_data)  * 0   # Mag is not calibrated at the moment. Unclibrated mag can seriously affect the roll and pitch.
+                                                      # For now, just using roll and pitch. Mag can be easily neglected as it acounts only for the yaw motion.
+                                                      # Future update, requires a calibrated mag value. To accuurately estimate the yaw.
     roll, pitch = np.arctan2(-ay,-az), np.arctan2(ax, np.sqrt(ay**2 + az**2))
     
     mx = mx * np.cos(pitch) + my * np.sin(roll) * np.sin(pitch) + mz * np.cos(roll) * np.sin(pitch)
