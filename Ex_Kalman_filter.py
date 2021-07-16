@@ -286,7 +286,8 @@ try:
     while True:
         roll, pitch = X_Kalman_filter(state_vec,P,Q,R)
         print('Angles[theta] : {0:.2f}, {1:.2f}'.format(np.around(roll, decimals=3), np.around(pitch, decimals=3)))
-      # pi.set_PWM_dutycycle(Set_GPIO, pulse_width(duty_cycle(roll)))
+        pi.set_PWM_dutycycle(Set_GPIO, pulse_width(duty_cycle(roll)))
+        pi.set_PWM_dutycycle(Set_GPIO, pulse_width(duty_cycle(pitch)))
 
 except KeyboardInterrupt:
         
