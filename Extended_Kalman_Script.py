@@ -233,10 +233,10 @@ while True:
     # Normalize 
     gyro_new_bias = (np.array([gyro_current_x,gyro_current_y,gyro_current_z])).reshape(3,1)
     auxillary = state_vec[:4]/ np.linalg.norm(state_vec)
-    state_vec = np.concatenate([auxillary,gyro_new_bias],)
-    state_vec = state_vec.reshape(7,) # test flag
+    state_vec = np.concatenate([auxillary,gyro_new_bias])
+    state_vec = state_vec.reshape(7,)
 
-    save_me = np.eye(7) - K.dot(H)
+    save_me = np.eye(7) - K.dot(H) #Auxillary, for some reason directly conputing the equation ->  P = (np.eye(7) - K.dot(H)).dot(P_next) , gave NaN error. 
     P = (save_me).dot(P_next)
    
     # extract quaternions and convert them to RPY (NED)
