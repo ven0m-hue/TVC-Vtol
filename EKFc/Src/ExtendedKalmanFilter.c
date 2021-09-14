@@ -129,15 +129,30 @@ void EKF_Predict(EKF_Handle_t *ekf, float *gyr, float Ts)
 	//7. Linearize the model, compute jacobians
 	//Horizontal concat and then later vertical concat
 	Mat* WST = hconcat(Wm, Sm);   // 4x7
+	
+	/*edit*/ //Here there is no more use of Wm, Sm -> free
+	freemat(Sm);
+	freemat(Wm);
+	
 	//Compute the jacobian
 	Mat* Ak = vconcat(WST, zeros(3, 7)); // 7x7 Matrix is initialized
+	
+	/*edit*/ //Here there is no more use of WSt -> free
+	freemat(WST);
+
 
 	//Linearized state transistion model
 	Mat *F = sum(eye(7), scalermultiply(Ak, 0.5 * Ts)); // Diagonal identity matrix
+	
+	/*edit*/ //Here there is no more use of Ak -> free
+	freemat(Ak);
 
 	//P -> 7x7 estimated error covarinace matrix
 	//Clean up the code later. Matrix lib starts here.
 	ekf->Pi = sum(multiply(F, multiply(ekf->Pi, transpose(F))), ekf->Qi);
+	
+	/*edit*/ //Here there is no more use of F -> free
+	freemat(F);
 
 }
 void EKF_Update(EKF_Handle_t *ekf, float *acc, float *mag)
@@ -212,10 +227,14 @@ void EKF_Update(EKF_Handle_t *ekf, float *acc, float *mag)
 	norm = invSqrt(ekf->x[0] * ekf->x[0] + ekf->x[1] * ekf->x[1] + ekf->x[2] * ekf->x[2] + ekf->x[3] * ekf->x[3]);
 	ekf->x[0] *= norm; ekf->x[1] *= norm; ekf->x[2] *= norm;ekf->x[3] *= norm;
 
-    //* 6. Update the Predicted error covariance matrix
+    	//* 6. Update the Predicted error covariance matrix
 	Mat *aux = minus(eye(7), multiply(K, H));
 	ekf->Pi = multiply(aux, ekf->Pi);
-
+	
+	/*edit*/ //Here there is no more use of Z,Hm,H,Sp,K,hm,S,K_S,aux -> free
+	freemat(Z);freemat(Hm);freemat(H);
+	freemat(Sp); freemat(K); freemat(hm);
+	freemat(S); freemat(K_S);freemat(aux);
 
 }
 
