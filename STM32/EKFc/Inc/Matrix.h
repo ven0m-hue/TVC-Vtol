@@ -11,7 +11,7 @@
 
 #include "stdlib.h"
 #include "math.h"
-
+#include "string.h"
 #define gyro_noise 1e-6
 #define accel_noise 1e-1
 
