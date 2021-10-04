@@ -18,6 +18,7 @@
 Mat newmat_up(int r,int c,float *d){
 	Mat M;
 	M.row=r;M.col=c;
+	memset(M.entries, 0, sizeof(M.entries));
 	int k=0;
 	int l = 0;
 	for(int i=1;i<=M.row;i++){
@@ -29,8 +30,9 @@ Mat newmat_up(int r,int c,float *d){
 }
 
 Mat newmat(int r,int c,float d){
-    Mat M;
+    	Mat M;
 	M.row=r;M.col=c;
+	memset(M.entries, 0, sizeof(M.entries));
 	int k=0;
 	for(int i=1;i<=M.row;i++){
 		for(int j=1;j<=M.col;j++){
