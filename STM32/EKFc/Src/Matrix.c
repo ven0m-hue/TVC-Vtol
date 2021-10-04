@@ -165,7 +165,7 @@ Mat removecol(Mat A,int c){
 }
 
 //Helper Function
-void removerow2(Mat A,Mat B,int r){
+Mat removerow2(Mat A,Mat B,int r){
 	int k=0;
 	for(int i=1;i<=A.row;i++){
 		for(int j=1;j<=A.col;j++){
@@ -174,10 +174,11 @@ void removerow2(Mat A,Mat B,int r){
 			}
 		}
 	}
+	return B;
 }
 
 //Helper Function
-void removecol2(Mat A,Mat B,int c){
+Mat removecol2(Mat A,Mat B,int c){
 	int k=0;
 	for(int i=1;i<=A.row;i++){
 		for(int j=1;j<=A.col;j++){
@@ -186,6 +187,7 @@ void removecol2(Mat A,Mat B,int c){
 			}
 		}
 	}
+	return B;
 }
 
 //Transpose of the Matrix
@@ -214,7 +216,7 @@ float det(Mat M){
 	float d=0, si=+1;
 	for(int j=1;j<=M.col;j++){
 		float c=M.entries[j-1];
-		removecol2(M1,M2,j);
+		M2 = removecol2(M1,M2,j);
 		d+=si*det(M2)*c;
 		si*=-1;
 	}
@@ -228,9 +230,9 @@ Mat adjoint(Mat A){
 	Mat A1=newmat(A.row-1,A.col,0);
 	Mat A2=newmat(A.row-1,A.col-1,0);
 	for(int i=1;i<=A.row;i++){
-		removerow2(A,A1,i);
+		A1 = removerow2(A,A1,i);
 		for(int j=1;j<=A.col;j++){
-			removecol2(A1,A2,j);
+			A2 = removecol2(A1,A2,j);
 			float si=pow(-1,(float)(i+j));
 			B.entries[(i-1)*B.col+j-1]=det(A2)*si;
 		}
