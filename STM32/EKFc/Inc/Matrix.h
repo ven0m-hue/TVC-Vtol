@@ -30,9 +30,6 @@ Mat newmat_up(int r,int c,float* d);
 //Universal Helper Function
 Mat newmat(int r,int c,float d);
 
-//Free Allocation
-void freemat(Mat A);//Once the computations are over.
-
 //Diagonal Identity matrix
 Mat eye(int n);
 
@@ -62,10 +59,10 @@ Mat removerow(Mat A,int r);
 Mat removecol(Mat A,int c);
 
 //Helper Function
-void removerow2(Mat A,Mat B,int r);
+Mat removerow2(Mat A,Mat B,int r);
 //Helper Function
 
-void removecol2(Mat A,Mat B,int c);
+Mat removecol2(Mat A,Mat B,int c);
 
 //Transpose of the Matrix
 Mat transpose(Mat A);
