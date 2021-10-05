@@ -245,11 +245,7 @@ Mat adjoint(Mat A){
 Mat inverse(Mat A){
 	Mat B=adjoint(A);
 	float de=det(A);
-	Mat C;
-	if(de > 0)
-		 C = scalermultiply(B,1/de);
-	else
-		 C = scalermultiply(B, 1e+10);
+	Mat C = scalermultiply(B,1/de);
 	return C;
 }
 
