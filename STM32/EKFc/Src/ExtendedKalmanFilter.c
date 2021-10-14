@@ -9,6 +9,8 @@
  * TO DO's
  * 1. Qinit and Rinit improvment
  * 2. #Define for more redability
+ * 3. Accurate yaw estimation 
+ * 4. Accurate yaw correction
  */
 
 
