@@ -11,36 +11,42 @@
  * 2. #Define for more redability
  */
 
+
+
+////////
+/*
+ * did's
+ * 1.Use memset in the matrix lib
+ * 2.refactored the codes, corrected some minor code
+ * 3.Alti estimation working, not very good output
+ * 4.Testing altitude -> rigurous test
+ */
+
 #include "ExtendedKalmanFilter.h"
 
 #define PI 3.142857f
 #define g  9.80665f
-#define Deg2Rad 180/ PI
-#define Rad2Deg PI/ 180
+#define Rad2Deg 180/PI
 //Some helper function prototypes
 static void euler2quat(EKF_Handle_t *ekf, float roll, float pitch, float yaw);
 static void quat2euler(EKF_Handle_t *ekf);
 static void get_Acc_Mag(EKF_Handle_t *ekf, float *accel_data, float *mag_data);
 static float yaw_correction(float roll, float pitch, float *mag_data);
-static float invSqrt(float x);
 
+static float invSqrt(float x);
 
 __weak void  Biases_Init(Biases_t *bias)
 {
 	bias->acc_noise = 1e-1;
-	bias->gyr_bias =  1e-8;
-	bias->gyr_noise = 1e-5;
-	bias->mag_noise = 1e-1;
+	bias->gyr_bias =  1e-1;
+	bias->gyr_noise = 1e-6;
+	bias->mag_noise = 0.0;
 	bias->pitch_offset = 0.0;
 	bias->roll_offset = 0.0;
 	bias->yaw_offset = 0.0;
 }
 
-uint8_t EKF_Init(EKF_Handle_t *ekf,float *acc, float *mag)
-{
-
-	Biases_Init(&ekf->bias);
-	/*
+/*
 	 * Matrix inits
 	 * 1. P[7,7] -> 7x7
 	 * 2. Q[7,7] -> 7x7
@@ -52,6 +58,12 @@ uint8_t EKF_Init(EKF_Handle_t *ekf,float *acc, float *mag)
 	 * //Future
 	 * 8. Accel_calibrate - roll, pitch compensation
 	 */
+
+uint8_t EKF_Init(EKF_Handle_t *ekf,float *acc, float *mag)
+{
+
+	Biases_Init(&ekf->bias);
+
 	//1. P[7,7] -> 7x7
 	ekf->Pi = eye(7);   // Initialized to 7x7 Identity matrix
 
@@ -72,14 +84,16 @@ uint8_t EKF_Init(EKF_Handle_t *ekf,float *acc, float *mag)
 	//6. Initialize the rest of the states with the input gyro bias
 	ekf->x[4] = ekf->bias.gyr_bias; ekf->x[5] = ekf->bias.gyr_bias; ekf->x[6] = ekf->bias.gyr_bias;
 
+
+	//7. Calculate the first set of height estimation
+
+
 	//7. Test euler->quat and qut->euler, if true proceed
 	return 1;
 
 }
 
-void EKF_Predict(EKF_Handle_t *ekf, float *gyr, float Ts)
-{
-	/*
+/*   EKF_Predict
 	 * 1. Subtract the bias with the gyro data
 	 * 2. (GYRO) inits(INPUT)
 	 * 3. Construct State W matrix
@@ -89,27 +103,26 @@ void EKF_Predict(EKF_Handle_t *ekf, float *gyr, float Ts)
 	 * 7. Linearize the model, compute jacobians
 	 * 8. Compute the Estimated error covarinace matrix
 	 */
-	//1. Subtract the bias with the gyro data
-	float gxb = ekf->x[4];
-	float gyb = ekf->x[5];
-	float gzb = ekf->x[6];
 
+void EKF_Predict(EKF_Handle_t *ekf, float *gyr, float Ts)
+{
+
+	//1. Subtract the bias with the gyro data
 	//2. (GYRO) inits(INPUT)
-	float gx = gyr[0] - gxb;
-	float gy = gyr[1] - gyb;
-	float gz = gyr[2] - gzb;
+	float gx = gyr[0] - ekf->x[4];
+	float gy = gyr[1] - ekf->x[5];
+	float gz = gyr[2] - ekf->x[6];
 
 	//3. Construct State W matrix
 	//Sensor frame reffered to the earth frame
-	double W[16] = {
+	float W[16] = {
 					  0, -gx, -gy, -gz,
 					  gx,  0,  gz, -gy,
 					  gy, -gz,  0,  gx, 				//2-D matrix written in the form of 1-D matrix
 					  gz,  gy, -gx,  0
 					}; // 4x4 Angular velocity (w)
 
-	Mat * Wm = newmat_up(4, 4, W);
-
+	//Mat * Wm = newmat_up(4, 4, W);
 	//4. State transistion matrix and state space equations
 	float q0 = ekf->x[0];
 	float q1 = ekf->x[1];
@@ -124,56 +137,37 @@ void EKF_Predict(EKF_Handle_t *ekf, float *gyr, float Ts)
 
 	//Normalize
 	float norm = invSqrt(ekf->x[0] * ekf->x[0] + ekf->x[1] * ekf->x[1] + ekf->x[2] * ekf->x[2] + ekf->x[3] * ekf->x[3]);
-	ekf->x[0] *= norm; ekf->x[1] *= norm; ekf->x[2] *= norm;ekf->x[3] *= norm;
+	ekf->x[0] *= norm; ekf->x[1] *= norm; ekf->x[2] *= norm; ekf->x[3] *= norm;
 
 	//Re-extract
-	q0 = ekf->x[0];
-	q1 = ekf->x[1];
-	q2 = ekf->x[2];
-	q3 = ekf->x[3];
+//	q0 = ekf->x[0];
+//	q1 = ekf->x[1];
+//	q2 = ekf->x[2];
+//	q3 = ekf->x[3];
 
 	//State transistion matrix
-	double ST[12] = {
+	float ST[12] = {
 					   q1,  q2,  q3,
 					  -q0,  q3, -q2,
 					  -q3, -q0,  q1,
 					   q2, -q1, -q0
 					 };//Convert them to actual matrix
 
-	Mat* Sm = newmat_up(4, 3, ST);
-
 	//7. Linearize the model, compute jacobians
-	//Horizontal concat and then later vertical concat
-	Mat* WST = hconcat(Wm, Sm);   // 4x7
-
-	/*edit*/ //Here there is no more use of Wm, Sm -> free
-	freemat(Sm);
-	freemat(Wm);
-
 	//Compute the jacobian
-	Mat* Ak = vconcat(WST, zeros(3, 7)); // 7x7 Matrix is initialized
-
-	/*edit*/ //Here there is no more use of WSt -> free
-	freemat(WST);
+	Mat Ak = hconcat(4,4,W,4,3,ST);
+	Ak = vconcat(4,7,Ak.entries, 3,7,zeros(3,7).entries); // 7x7 Matrix is initialized
 
 	//Linearized state transistion model
-	Mat *F = sum(eye(7), scalermultiply(Ak, 0.5 * Ts)); // Diagonal identity matrix
-
-	/*edit*/ //Here there is no more use of Ak -> free
-	freemat(Ak);
+	Mat F = sum(eye(7), scalermultiply(Ak, 0.5 * Ts)); // Diagonal identity matrix
 
 	//P -> 7x7 estimated error covarinace matrix
-	//Clean up the code later. Matrix lib starts here.
-	//Mat* P =  sum(multiply(F, multiply(ekf->Pi, transpose(F))), ekf->Qi);
-	//ekf->Pi = sum(multiply(F, multiply(ekf->Pi, transpose(F))), ekf->Qi);
-	//freemat(P);
-	/*edit*/ //Here there is no more use of F -> free
-	freemat(F);
+	ekf->Pi = sum(multiply(F, multiply(ekf->Pi, transpose(F))), ekf->Qi);
+
 
 }
-void EKF_Update(EKF_Handle_t *ekf, float *acc, float *mag)
-{
-	/*
+
+/* EKF_Update
 	 * Fusion Block
 	 * 1. (ACCEL/MAG)inits(Measurement)
 	 * 2. Construct the observation matrix
@@ -182,42 +176,45 @@ void EKF_Update(EKF_Handle_t *ekf, float *acc, float *mag)
 	 * 5. Update the state estimate
 	 * 6. Update the Predicted error covariance matrix
 	 */
+
+void EKF_Update(EKF_Handle_t *ekf, float *acc)
+{
+	/*edit refactored*/
+
 	//1. (ACCEL/MAG)inits(Measurement)
 	float norm = invSqrt(acc[0]*acc[0] + acc[1]*acc[1] + acc[2]*acc[2]);
-	double ax = acc[0] *norm;
-	double ay = acc[1] *norm;
-	double az = acc[2] *norm;
-	double accel[3] = {ax,ay,az};
+	acc[0] *= norm;
+	acc[1] *= norm;
+	acc[2] *= norm;
 
 	//2. Construct the observation matrix
 	float q0 = ekf->x[0];
 	float q1 = ekf->x[1];
 	float q2 = ekf->x[2];
 	float q3 = ekf->x[3];
+
 	//Non-linear
-	double Hk[12] = {
+	float Hk[12] = {
 						  2*q2, -2*q3,  2*q0, -2*q1,
 						 -2*q1, -2*q0, -2*q3, -2*q2,
 						 -2*q0,  2*q1,  2*q2, -2*q3
 				     };  /*edit* added scalar multiplication manually */
-	//3. Linearize the model
+
+	//3. Observation model
 	//Linearized by finding the jacobian
-	Mat *Hm = newmat_up(3, 4, Hk);
-	//Hm = scalermultiply(Hm, 2);
+	Mat H = hconcat(3,4,Hk, 3,3,zeros(3, 3).entries); // [3x7] State Observation matrix
 
-	Mat *H = hconcat(Hm, zeros(3, 3)); // 3x7 State Observation matrix
-
-	freemat(Hm);
 
 	//Nasty computation start
 	//4. Compute the Kalman gain
-	//Find the inverse of the matrix
-	Mat *Sp = sum(multiply(H, multiply(ekf->Pi, transpose(H))), ekf->Ri);
 
-	Mat *K = multiply(ekf->Pi, multiply(transpose(H), inverse(Sp)));
+	//Find the inverse of the matrix
+	Mat Sp = sum(multiply(H, multiply(ekf->Pi, transpose(H))), ekf->Ri); //[3x3]
+
+	Mat K = multiply(ekf->Pi, multiply(transpose(H), inverse(Sp))); // [7x3]
 
 	//* 5. Jacobian of the observation model
-	double hk[3] = {
+	float hk[3] = {
 					-2*(q1 * q3 - q0 * q2),
 
 					-2*(q0 * q1 + q2 * q3),
@@ -225,14 +222,15 @@ void EKF_Update(EKF_Handle_t *ekf, float *acc, float *mag)
 					-1*(q0*q0 + q3*q3 - q1*q1 - q2*q2)
 
 				   };
-	Mat *hm = newmat_up(3, 1, hk); //3x1
 
-	Mat *Z = newmat_up(3, 1, accel); //3x1
+	Mat hm = newmat_up(3, 1, hk); //3x1
+
+	Mat Z = newmat_up(3, 1, acc); //3x1
 
 	//Error variance
-	Mat *S = minus(Z, hm); //3x1
+	Mat S = minus(Z, hm); //3x1
 	//Predicted state matrix
-	Mat *K_S = multiply(K, S); // [7x3] * [3x1] --> [7x1]
+	Mat K_S = multiply(K, S); // [7x3] * [3x1] --> [7x1]
 
 	ekf->x[0] = ekf->x[0] + get(K_S, 1, 1);
 	ekf->x[1] = ekf->x[1] + get(K_S, 2, 1);
@@ -247,15 +245,9 @@ void EKF_Update(EKF_Handle_t *ekf, float *acc, float *mag)
 	ekf->x[0] *= norm; ekf->x[1] *= norm; ekf->x[2] *= norm;ekf->x[3] *= norm;
 
     //* 6. Update the Predicted error covariance matrix
-	Mat *aux = minus(eye(7), multiply(K, H));
+	//Mat aux = minus(eye(7), multiply(K, H)); //7x7
 
-	//Mat *P = multiply(aux, ekf->Pi);
-	//ekf->Pi = multiply(aux, ekf->Pi);
-	//freemat(P);
-	/*edit*/ //Here there is no more use of Z,Hm,H,Sp,K,hm,S,K_S,aux -> free
-	freemat(Z);freemat(H);
-	freemat(Sp); freemat(K); freemat(hm);
-	freemat(S); freemat(K_S);freemat(aux);
+	ekf->Pi = multiply(minus(eye(7), multiply(K, H)), ekf->Pi);  //7x7
 
 }
 
@@ -268,25 +260,95 @@ void EKF_Extract(EKF_Handle_t *ekf)
 	 * 2. Update the euler roll pitch or yaw.
 	 */
 	quat2euler(ekf);
+	ekf->roll -= ekf->bias.roll_offset;
+	ekf->pitch -= ekf->bias.pitch_offset;
 }
 
-///////////////////////////////////////////////////////////////////{HELPER_FUNCTIONS}////////////////////////////////////////////////////////////////////////////////
+//ALTITUDE ESTIMATION
+uint8_t KF_Init(EKF_Handle_t *ekf, float Ts)
+{
+		//Measurement matrix
+		ekf->R = eye_R(2);
+
+		//Process noise
+		float q[4] = {  Qpn*(Ts*Ts*Ts*Ts)/4, Qpn*(Ts*Ts*Ts)/2,
+					    Qpn*(Ts*Ts*Ts)/2,    Qpn*(Ts*Ts)      };
+
+		ekf->Q = newmat_up(2, 2, q);
+
+		//Error covariance
+		ekf->P = eye(2);
+
+		//Initial state
+		float xi[2] = { 0, 0}; //get_Height(ekf,ekf->bias.pressure_offset)
+		ekf->Xi = newmat_up(1, 2, xi);
+
+		//State model
+		float a[4] = {1, Ts, 0, 1};
+		ekf->A = newmat_up(2, 2, a);
+
+		//Input matrix
+		float b[2] = {(Ts*Ts)/2, Ts};
+		ekf->B = newmat_up(1, 2, b);
+
+		//State Observer
+		float c[4] = {1, 0, 0, 0};
+		ekf->C = newmat_up(2, 2, c);
+
+		return 1;
+}
+
+
+
+void KF_Predict_Update(EKF_Handle_t *ekf, float acc, float pres)
+{
+
+	//Estimated State update equation
+	Mat X = sum(multiply(ekf->A, ekf->Xi), scalermultiply(ekf->B, acc));
+
+	//Predicted State update equation
+	ekf->P = sum(multiply(ekf->A, multiply(ekf->P, transpose(ekf->A))), ekf->Q);
+
+	//Measurement model
+	float y[2] = {get_Height(ekf, pres), 0};
+	Mat Y = newmat_up(1, 2, y);
+
+	//Corrector equation
+	Mat S = minus(Y, multiply(ekf->C, X));
+
+	//Kalman gain
+	Mat Sp = sum(multiply(ekf->C, multiply(ekf->P, transpose(ekf->C))), ekf->R);
+	Mat K = multiply(ekf->P, multiply(transpose(ekf->C), inverse(Sp)));
+
+	//Update state equation
+	ekf->Xi = sum(ekf->Xi, multiply(K, S));
+
+	//Update state equation
+	ekf->P = multiply(minus(eye(2), multiply(K, ekf->C)), ekf->P);
+
+	//Output
+	ekf->altitude = ekf->Xi.entries[0];
+
+}
+
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////{HELPER_FUNCTIONS}//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 static void euler2quat(EKF_Handle_t *ekf, float roll, float pitch, float yaw)
 {
-	double croll = cos(roll/2);
-	double sroll = sin(roll/2);
+	float croll = cos(roll/2);
+	float sroll = sin(roll/2);
 
-	double cpitch = cos(pitch/2);
-	double spitch = sin(pitch/2);
+	float cpitch = cos(pitch/2);
+	float spitch = sin(pitch/2);
 
-	double cyaw = cos(yaw/2);
-	double syaw = sin(yaw/2);
+	float cyaw = cos(yaw/2);
+	float syaw = sin(yaw/2);
 
 	ekf->x[0] = croll * cpitch * cyaw + sroll * spitch * syaw;
 	ekf->x[1] = sroll * cpitch * cyaw - croll * spitch * syaw;
 	ekf->x[2] = croll * spitch * cyaw + sroll * cpitch * syaw;
 	ekf->x[3] = croll * cpitch * syaw - sroll * spitch * cyaw;
-	ekf->x[4] = 0.0; ekf->x[5] = 0.0; ekf->x[6] = 0.0;
 
 }
 
@@ -307,18 +369,18 @@ static void quat2euler(EKF_Handle_t *ekf)
 					   { 2 * (q[1] * q[3]-q[0] * q[2]),          2 * (q[2] * q[3]+q[0] * q[1]),  1 - 2 * (q[2] * q[1]+q[2] * q[2])}
 			       };
 
-   ekf->roll  = (atan2(R[2][1], R[2][2])) * Deg2Rad;
-   ekf->pitch = -asin(R[2][0]) * Deg2Rad;
-   ekf->yaw   = atan2(R[1][0], R[0][0]) * Deg2Rad;
+   ekf->roll  = (atan2(R[2][1], R[2][2])) * Rad2Deg;
+   ekf->pitch = -asin(R[2][0]) * Rad2Deg;
+   ekf->yaw   = atan2(R[1][0], R[0][0]) * Rad2Deg;
 
 }
 
 static float yaw_correction(float roll, float pitch, float *mag)
 {
 
-	float mx = mag[0] * 0;
-	float my = mag[1] * 0;
-	float mz = mag[2] * 0;
+	float mx = mag[0] ;
+	float my = mag[1] ;
+	float mz = mag[2] ;
 
 	//float norm = invSqrt(mx * mx+ my * my + mz * mz);
 	//mx *= norm; my *= norm; mz *= norm;
@@ -349,7 +411,13 @@ static void get_Acc_Mag(EKF_Handle_t *ekf, float *accel_data, float *mag_data)
 
 }
 
-//Fastedt method for s
+ float get_Height(EKF_Handle_t *ekf, float pres)
+{
+	  return (44330 * (1.0 - pow((pres/ekf->bias.pressure_offset), 0.1903)));
+}
+
+
+//Fastest method for inverse sqrt
 static float invSqrt(float x)
 {
 	float halfx = 0.5f * x;
@@ -362,3 +430,6 @@ static float invSqrt(float x)
 
 	return y;
 }
+
+
+
