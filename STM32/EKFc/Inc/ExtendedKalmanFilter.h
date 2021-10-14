@@ -12,73 +12,92 @@
 #include "math.h"
 #include "Matrix.h"
 
-
-typedef struct
-{
-	/*
+/*
 	 * 1. Noises
 	 * 2. gyr Bias
 	 * 3. Offset bias
-	 */
-	double gyr_noise;
-	double acc_noise;
-	double mag_noise;
+ */
+typedef struct
+{
 
-	double gyr_bias;
+	float gyr_noise;
+	float acc_noise;
+	float mag_noise;
 
-	double roll_offset;
-	double pitch_offset;
-	double yaw_offset;
+	float gyr_bias;
+
+	float roll_offset;
+	float pitch_offset;
+	float yaw_offset;
+
+	float pressure_offset;
+
 }Biases_t;
 
 
-typedef struct
-{
-	/*
+/*
 	 * State estimates
 	 * P, Q, R matrix
 	 * biases
 	 * output
-	 */
+
+ */
+typedef struct
+{
+
 	float x[7]; // quaternion states.
 
-#if 0 //This was prior to using the matrix library
-	float P[7][7];
-	float Q[7][7];
-	float R[3][3];
-#endif
 	//Matrix library
-	Mat *Pi;
-	Mat *Qi;
-	Mat *Ri;
+	Mat Pi;
+	Mat Qi;
+	Mat Ri;
 
 	Biases_t bias;
 
+	//From the IMU
 	float roll;
 	float pitch;
 	float yaw;
 
+	//From the BMP
+	Mat Xi;
+	Mat P;
+	Mat Q;
+	Mat R;
+	Mat A, B, C;
+
+
+	float altitude;
 
 }EKF_Handle_t;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /*
- * API Calls
+ * API Calls IMU
  * 1. EKF init
- * 2. EKF Preditc
+ * 2. EKF Predict
  * 3. EKF Update
  * 4. EKF Extract the orientation roll and pitch only
  * 5. EKF Extract the orientation yaw
  */
-uint8_t EKF_Init(EKF_Handle_t *ekf, float *acc, float *mag);
+uint8_t EKF_Init(EKF_Handle_t *ekf,float *acc, float *mag);
 void EKF_Predict(EKF_Handle_t *ekf, float *gyr, float Ts);
-void EKF_Update(EKF_Handle_t *ekf, float *acc, float *mag);
+void EKF_Update(EKF_Handle_t *ekf, float *acc);
 void EKF_Extract(EKF_Handle_t *ekf);
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
+ * API Calls BMP
+ * 1. KF init
+ * 2. KF Predict
+ * 3. KF Update
+ * 4. EKF Extract the Altitude
+ */
+float get_Height(EKF_Handle_t *ekf, float pres);
+uint8_t KF_Init(EKF_Handle_t *ekf, float Ts);
+void KF_Predict_Update(EKF_Handle_t *ekf, float acc, float pres);
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Some generic macros
-#define PI 3.142857f
-#define g  9.80665f
-#define Deg2Rad 180/ PI
-#define Rad2Deg PI/ 180
+#define Qpn  1e-3
+
 
 #endif /* INC_EXTENDEDKALMANFILTER_H_ */
