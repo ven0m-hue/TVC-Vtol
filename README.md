@@ -8,4 +8,13 @@ and landing.
 
 *FPU interfaces all the sensors, actuates various control surfaces. (Avionics).
 
-**This is a on going project. 
+<b>Obeservers</b>
+*Height estimation, for Vertical set-point 
+
+*Orienation estimation for stabalization of the body (Vector Control)
+
+<b>Controllers</b>
+* PID for the Vectoring 
+* MPC for Vertical and take off and landing.
+
+**This is an on going project. 
