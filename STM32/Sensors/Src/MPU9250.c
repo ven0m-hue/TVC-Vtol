@@ -112,7 +112,8 @@ void MPU9250_ReadAccel(MPU9250_Handle_t *imu)
 
 	imu->acc[0] =  accX * getAres(Ascale);
 	imu->acc[1] =  accY * getAres(Ascale);
-	imu->acc[2] = -accZ * getAres(Ascale);
+	imu->acc[2] = -accZ * getAres(Ascale);  //NED system. Since positive Z axis points down aka fighitng against the gravity, use a negative sign. 
+ 	//North, East, Down (NED), used specially in aerospace
 
 }
 
