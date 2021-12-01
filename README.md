@@ -17,6 +17,7 @@ and landing.
 <b>Controllers</b>
 
 * PID for the Vectoring 
-* MPC for Vertical and take off and landing.
+* Due to time constraint, we are going with the classic PID for our rescue.
+* MPC for Vertical and take off and landing.(Future)
 
 **This is an on going project. 
