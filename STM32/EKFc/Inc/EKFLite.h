@@ -28,6 +28,16 @@ typedef struct
 	float roll;
 	float pitch;
 	float yaw;
+	
+	//From the BMP
+	Mat Xi;
+	Mat P;
+	Mat Q;
+	Mat R;
+	Mat A, B, C;
+
+
+	float altitude;
 
 }EKF_Handle_t;
 
