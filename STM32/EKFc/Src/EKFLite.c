@@ -13,6 +13,8 @@
 static float invSqrt(float x);
 static void quat2euler(EKF_Handle_t *ekf);
 
+//Orientation Estimation
+
 uint8_t EKF_Init(EKF_Handle_t *ekf)
 {
 
@@ -164,6 +166,73 @@ void EKF_Update(EKF_Handle_t *ekf, float *acc)
 	quat2euler(ekf);
 }
 
+
+//ALTITUDE ESTIMATION
+uint8_t KF_Init(EKF_Handle_t *ekf, float Ts)
+{
+		//Measurement matrix
+		ekf->R = eye_R(2);
+
+		//Process noise
+		float q[4] = {  Qpn*(Ts*Ts*Ts*Ts)/4, Qpn*(Ts*Ts*Ts)/2,
+					    Qpn*(Ts*Ts*Ts)/2,    Qpn*(Ts*Ts)      };
+
+		ekf->Q = newmat_up(2, 2, q);
+
+		//Error covariance
+		ekf->P = eye(2);
+
+		//Initial state
+		float xi[2] = { 0, 0}; //get_Height(ekf,ekf->bias.pressure_offset)
+		ekf->Xi = newmat_up(1, 2, xi);
+
+		//State model
+		float a[4] = {1, Ts, 0, 1};
+		ekf->A = newmat_up(2, 2, a);
+
+		//Input matrix
+		float b[2] = {(Ts*Ts)/2, Ts};
+		ekf->B = newmat_up(1, 2, b);
+
+		//State Observer
+		float c[4] = {1, 0, 0, 0};
+		ekf->C = newmat_up(2, 2, c);
+
+		return 1;
+}
+
+
+
+void KF_Predict_Update(EKF_Handle_t *ekf, float acc, float pres)
+{
+
+	//Estimated State update equation
+	Mat X = sum(multiply(ekf->A, ekf->Xi), scalermultiply(ekf->B, acc));
+
+	//Predicted State update equation
+	ekf->P = sum(multiply(ekf->A, multiply(ekf->P, transpose(ekf->A))), ekf->Q);
+
+	//Measurement model
+	float y[2] = {get_Height(ekf, pres), 0};
+	Mat Y = newmat_up(1, 2, y);
+
+	//Corrector equation
+	Mat S = minus(Y, multiply(ekf->C, X));
+
+	//Kalman gain
+	Mat Sp = sum(multiply(ekf->C, multiply(ekf->P, transpose(ekf->C))), ekf->R);
+	Mat K = multiply(ekf->P, multiply(transpose(ekf->C), inverse(Sp)));
+
+	//Update state equation
+	ekf->Xi = sum(ekf->Xi, multiply(K, S));
+
+	//Update state equation
+	ekf->P = multiply(minus(eye(2), multiply(K, ekf->C)), ekf->P);
+
+	//Output
+	ekf->altitude = ekf->Xi.entries[0];
+
+}
 
 
 
