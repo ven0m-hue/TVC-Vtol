@@ -258,6 +258,11 @@ static void quat2euler(EKF_Handle_t *ekf)
 
 }
 
+float get_Height(EKF_Handle_t *ekf, float pres)
+{
+	  return (44330 * (1.0 - pow((pres/ekf->bias.pressure_offset), 0.1903)));
+}
+
 //Fastest method for inverse sqrt
 static float invSqrt(float x)
 {
