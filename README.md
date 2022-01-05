@@ -17,7 +17,9 @@ and landing.
 <b>Controllers</b>
 
 * PID for the Vectoring 
-* Due to time constraint, we are going with the classic PID for our rescue.
+* The classic PID for Altitude.
 * MPC for Vertical and take off and landing.(Future)
+
+MISC: Lot of test data, test scripts. 
 
 **This is an on going project. 
