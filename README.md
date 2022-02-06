@@ -16,10 +16,11 @@ and landing.
 
 <b>Controllers</b>
 
-* PID for the Vectoring 
-* The classic PID for Altitude.
+* PID for the Vectoring. (Coupled PID pending)
+* The classic PID for Altitude. (almost done)
 * MPC for Vertical and take off and landing.(Future)
 
 MISC: Lot of test data, test scripts. 
 
 **This is an on going project. 
+**Project currently at hault. 
