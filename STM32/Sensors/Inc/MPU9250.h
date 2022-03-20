@@ -22,7 +22,6 @@ typedef struct
 typedef struct
 {
 	I2C_HandleTypeDef *I2Chandle; /* Handle to the I2C peripheral */
-	GPIO_InitTypeDef *GPIO_INT_PIN; /* Handle to configure the Alternate Functionality of the GPIO pins*/
 
 	float acc[3];    /*3 axis accel OutPut*/
 	float gyr[3];	 /*3 axis gyro OutPut*/
