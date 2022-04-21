@@ -4,9 +4,9 @@
 Project aimed at autonomous stabilization of the flight and orientation, occurring during the vertical take-off
 and landing. 
 
-*STM based 32 bit micro-controller is used as a flight control unit(FPU).
+*STM based 32 bit micro-controller is used as a flight control unit(FCU).
 
-*FPU interfaces all the sensors, actuates various control surfaces. (Avionics).
+*FCU interfaces all the sensors, actuates various control surfaces. (Avionics).
 
 <b>Obeservers</b>
 
@@ -24,4 +24,4 @@ MISC: Lot of test data, test scripts.
 
 **This is an on going project. 
 
-**Project currently at hault. 
+***Project currently at hault. 
